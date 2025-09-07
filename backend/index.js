@@ -1,12 +1,24 @@
 const express = require("express");
 const dotenv = require("dotenv");
+const cors = require("cors");
 const app = express();
 dotenv.config();
 const PORT = process.env.PORT || 5000;
 const router = require("./router/main-router");
 const { connectToDatabase } = require("./utils/db");
 
+// CORS configuration for production
+const corsOptions = {
+  origin: process.env.NODE_ENV === 'production' 
+    ? ['https://your-frontend-url.vercel.app', 'https://your-frontend-url.netlify.app']
+    : ['http://localhost:3000', 'http://localhost:5173'],
+  credentials: true,
+  optionsSuccessStatus: 200
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
+app.use("/uploads", express.static("uploads"));
 app.use("/api", router);
 
 // 404 handler

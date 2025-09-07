@@ -1,10 +1,14 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { GiHamburgerMenu } from "react-icons/gi";
 import { HiHome } from "react-icons/hi";
 import { AiFillFire } from "react-icons/ai";
-import { IoLibrary, IoClose } from "react-icons/io5";
+import { IoLibrary } from "react-icons/io5";
+import { MdCloudUpload } from "react-icons/md";
+import { BiSolidDashboard } from "react-icons/bi";
+import { IoClose } from "react-icons/io5";
 import { CgProfile } from "react-icons/cg";
+import { FaUserAstronaut } from "react-icons/fa";
 
 const Sidebar = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -12,6 +16,7 @@ const Sidebar = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userName, setUserName] = useState('');
+  const [userRole, setUserRole] = useState('');
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -19,6 +24,31 @@ const Sidebar = () => {
     name: ''
   });
   const location = useLocation();
+
+  // Check for stored login data on component mount
+  useEffect(() => {
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      try {
+        const userData = JSON.parse(storedUser);
+        setIsLoggedIn(true);
+        setUserName(userData.name);
+        setUserRole(userData.role);
+        console.log('Restored user from localStorage:', userData);
+      } catch (error) {
+        console.error('Error parsing stored user data:', error);
+        localStorage.removeItem('user');
+      }
+    }
+  }, []);
+
+  // Function to clear user data
+  const clearUserData = () => {
+    setIsLoggedIn(false);
+    setUserName('');
+    setUserRole('');
+    localStorage.removeItem('user');
+  };
 
   const toggleSidebar = () => {
     setIsOpen(!isOpen);
@@ -34,9 +64,9 @@ const Sidebar = () => {
   };
 
   const handleLogout = () => {
-    setIsLoggedIn(false);
-    setUserName('');
+    clearUserData();
     setIsProfileOpen(false);
+    console.log('User logged out and localStorage cleared');
   };
 
   const handleInputChange = (e) => {
@@ -68,6 +98,19 @@ const Sidebar = () => {
         if (response.ok) {
           setIsLoggedIn(true);
           setUserName(data.user.name);
+          setUserRole(data.user.role);
+          console.log('User role:', data.user.role); // Debug log
+          
+          // Store user data in localStorage for persistence
+          const userData = {
+            name: data.user.name,
+            email: data.user.email,
+            role: data.user.role,
+            id: data.user.id
+          };
+          localStorage.setItem('user', JSON.stringify(userData));
+          console.log('User data stored in localStorage:', userData);
+          
           setIsProfileOpen(false);
           setFormData({ email: '', password: '', confirmPassword: '', name: '' });
         } else {
@@ -98,6 +141,18 @@ const Sidebar = () => {
         if (response.ok) {
           setIsLoggedIn(true);
           setUserName(data.user.name);
+          setUserRole(data.user.role);
+          
+          // Store user data in localStorage for persistence
+          const userData = {
+            name: data.user.name,
+            email: data.user.email,
+            role: data.user.role,
+            id: data.user.id
+          };
+          localStorage.setItem('user', JSON.stringify(userData));
+          console.log('New user data stored in localStorage:', userData);
+          
           setIsProfileOpen(false);
           setFormData({ email: '', password: '', confirmPassword: '', name: '' });
         } else {
@@ -107,6 +162,8 @@ const Sidebar = () => {
     } catch (error) {
       console.error('Error:', error);
       alert('Network error. Please try again.');
+      // Clear user data if there's a network error
+      clearUserData();
     }
   };
 
@@ -214,13 +271,13 @@ const Sidebar = () => {
         {/* Floating Text */}
         <div style={{
           fontSize: '12px',
-          color: '#6b7280',
+          color: isLoggedIn ? '#10b981' : '#6b7280',
           fontWeight: '500',
           textAlign: 'center',
           animation: isLoggedIn ? 'none' : 'float 2s ease-in-out infinite',
           opacity: 0.8
         }}>
-          {isLoggedIn ? userName : 'Login'}
+          {isLoggedIn ? `${userName} ✓` : 'Login'}
         </div>
       </div>
 
@@ -302,11 +359,49 @@ const Sidebar = () => {
             }}>
               {isLoggedIn ? `Welcome back, ${userName}!` : (isLogin ? 'Welcome back! Please sign in to your account.' : 'Create your account to get started.')}
             </p>
+            {isLoggedIn && (
+              <p style={{ 
+                color: '#9ca3af', 
+                fontSize: '12px', 
+                textAlign: 'center',
+                marginBottom: '20px',
+                fontStyle: 'italic'
+              }}>
+                Role: {userRole || 'Loading...'}
+              </p>
+            )}
 
             {isLoggedIn ? (
               // Profile content when logged in
               <div style={{ width: '100%', maxWidth: '300px' }}>
-                <div style={{ display: 'flex', gap: '16px', justifyContent: 'center' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', justifyContent: 'center' }}>
+                  {userRole === 'admin' && (
+                    <button
+                      onClick={() => {
+                        setIsProfileOpen(false);
+                        window.location.href = '/dashboard';
+                      }}
+                      style={{
+                        padding: '12px 24px',
+                        backgroundColor: '#3b82f6',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '8px',
+                        cursor: 'pointer',
+                        fontSize: '14px',
+                        fontWeight: '500',
+                        transition: 'background-color 0.2s'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = '#2563eb';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = '#3b82f6';
+                      }}
+                    >
+                      Dashboard
+                    </button>
+                  )}
                   <button
                     onClick={handleLogout}
                     style={{
@@ -567,48 +662,123 @@ const Sidebar = () => {
           }}>
             <HiHome size={24} />
           </Link>
-          <Link to="/trending" style={{ 
-            padding: '8px',
-            color: isActive('/trending') ? '#3b82f6' : '#374151', 
-            textDecoration: 'none',
-            borderRadius: '8px',
-            transition: 'all 0.3s ease',
-            backgroundColor: isActive('/trending') ? '#eff6ff' : 'transparent',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.transform = 'scale(1.1)';
-            e.currentTarget.style.backgroundColor = isActive('/trending') ? '#dbeafe' : '#f3f4f6';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.transform = 'scale(1)';
-            e.currentTarget.style.backgroundColor = isActive('/trending') ? '#eff6ff' : 'transparent';
-          }}>
-            <AiFillFire size={24} />
-          </Link>
-          <Link to="/library" style={{ 
-            padding: '8px',
-            color: isActive('/library') ? '#3b82f6' : '#374151', 
-            textDecoration: 'none',
-            borderRadius: '8px',
-            transition: 'all 0.3s ease',
-            backgroundColor: isActive('/library') ? '#eff6ff' : 'transparent',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.transform = 'scale(1.1)';
-            e.currentTarget.style.backgroundColor = isActive('/library') ? '#dbeafe' : '#f3f4f6';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.transform = 'scale(1)';
-            e.currentTarget.style.backgroundColor = isActive('/library') ? '#eff6ff' : 'transparent';
-          }}>
-            <IoLibrary size={24} />
-          </Link>
+          
+          {/* Show Trending and Library for normal users OR when admin is on home page */}
+          {(!isLoggedIn || userRole !== 'admin' || location.pathname === '/') && (
+            <>
+              <Link to="/trending" style={{ 
+                padding: '8px',
+                color: isActive('/trending') ? '#3b82f6' : '#374151', 
+                textDecoration: 'none',
+                borderRadius: '8px',
+                transition: 'all 0.3s ease',
+                backgroundColor: isActive('/trending') ? '#eff6ff' : 'transparent',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'scale(1.1)';
+                e.currentTarget.style.backgroundColor = isActive('/trending') ? '#dbeafe' : '#f3f4f6';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'scale(1)';
+                e.currentTarget.style.backgroundColor = isActive('/trending') ? '#eff6ff' : 'transparent';
+              }}>
+                <AiFillFire size={24} />
+              </Link>
+              <Link to="/library" style={{ 
+                padding: '8px',
+                color: isActive('/library') ? '#3b82f6' : '#374151', 
+                textDecoration: 'none',
+                borderRadius: '8px',
+                transition: 'all 0.3s ease',
+                backgroundColor: isActive('/library') ? '#eff6ff' : 'transparent',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'scale(1.1)';
+                e.currentTarget.style.backgroundColor = isActive('/library') ? '#dbeafe' : '#f3f4f6';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'scale(1)';
+                e.currentTarget.style.backgroundColor = isActive('/library') ? '#eff6ff' : 'transparent';
+              }}>
+                <IoLibrary size={24} />
+              </Link>
+            </>
+          )}
+          
+          {/* Show admin-only icons when admin is logged in */}
+          {userRole === 'admin' && (
+            <>
+              <Link to="/dashboard" style={{ 
+                padding: '8px',
+                color: isActive('/dashboard') ? '#3b82f6' : '#374151', 
+                textDecoration: 'none',
+                borderRadius: '8px',
+                transition: 'all 0.3s ease',
+                backgroundColor: isActive('/dashboard') ? '#eff6ff' : 'transparent',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'scale(1.1)';
+                e.currentTarget.style.backgroundColor = isActive('/dashboard') ? '#dbeafe' : '#f3f4f6';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'scale(1)';
+                e.currentTarget.style.backgroundColor = isActive('/dashboard') ? '#eff6ff' : 'transparent';
+              }}>
+                <BiSolidDashboard size={24} />
+              </Link>
+              <Link to="/upload" style={{ 
+                padding: '8px',
+                color: isActive('/upload') ? '#3b82f6' : '#374151', 
+                textDecoration: 'none',
+                borderRadius: '8px',
+                transition: 'all 0.3s ease',
+                backgroundColor: isActive('/upload') ? '#eff6ff' : 'transparent',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'scale(1.1)';
+                e.currentTarget.style.backgroundColor = isActive('/upload') ? '#dbeafe' : '#f3f4f6';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'scale(1)';
+                e.currentTarget.style.backgroundColor = isActive('/upload') ? '#eff6ff' : 'transparent';
+              }}>
+                <MdCloudUpload size={24} />
+              </Link>
+              <Link to="/users" style={{ 
+                padding: '8px',
+                color: isActive('/users') ? '#3b82f6' : '#374151', 
+                textDecoration: 'none',
+                borderRadius: '8px',
+                transition: 'all 0.3s ease',
+                backgroundColor: isActive('/users') ? '#eff6ff' : 'transparent',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'scale(1.1)';
+                e.currentTarget.style.backgroundColor = isActive('/users') ? '#dbeafe' : '#f3f4f6';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'scale(1)';
+                e.currentTarget.style.backgroundColor = isActive('/users') ? '#eff6ff' : 'transparent';
+              }}>
+                <FaUserAstronaut size={24} />
+              </Link>
+            </>
+          )}
         </div>
       )}
 
@@ -679,50 +849,128 @@ const Sidebar = () => {
                 <HiHome size={24} />
                 <span>Home</span>
               </Link>
-              <Link to="/trending" style={{ 
-                display: 'flex', 
-                alignItems: 'center',
-                gap: '12px',
-                padding: '12px 16px', 
-                color: isActive('/trending') ? '#3b82f6' : '#374151', 
-                textDecoration: 'none',
-                borderRadius: '8px',
-                transition: 'all 0.3s ease',
-                backgroundColor: isActive('/trending') ? '#eff6ff' : 'transparent'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'scale(1.05)';
-                e.currentTarget.style.backgroundColor = isActive('/trending') ? '#dbeafe' : '#f3f4f6';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'scale(1)';
-                e.currentTarget.style.backgroundColor = isActive('/trending') ? '#eff6ff' : 'transparent';
-              }}>
-                <AiFillFire size={24} />
-                <span>Trending</span>
-              </Link>
-              <Link to="/library" style={{ 
-                display: 'flex', 
-                alignItems: 'center',
-                gap: '12px',
-                padding: '12px 16px', 
-                color: isActive('/library') ? '#3b82f6' : '#374151', 
-                textDecoration: 'none',
-                borderRadius: '8px',
-                transition: 'all 0.3s ease',
-                backgroundColor: isActive('/library') ? '#eff6ff' : 'transparent'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'scale(1.05)';
-                e.currentTarget.style.backgroundColor = isActive('/library') ? '#dbeafe' : '#f3f4f6';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'scale(1)';
-                e.currentTarget.style.backgroundColor = isActive('/library') ? '#eff6ff' : 'transparent';
-              }}>
-                <IoLibrary size={24} />
-                <span>Library</span>
-              </Link>
+              
+              {/* Show Trending and Library for normal users OR when admin is on home page */}
+              {(!isLoggedIn || userRole !== 'admin' || location.pathname === '/') && (
+                <>
+                  <Link to="/trending" style={{ 
+                    display: 'flex', 
+                    alignItems: 'center',
+                    gap: '12px',
+                    padding: '12px 16px', 
+                    color: isActive('/trending') ? '#3b82f6' : '#374151', 
+                    textDecoration: 'none',
+                    borderRadius: '8px',
+                    transition: 'all 0.3s ease',
+                    backgroundColor: isActive('/trending') ? '#eff6ff' : 'transparent'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'scale(1.05)';
+                    e.currentTarget.style.backgroundColor = isActive('/trending') ? '#dbeafe' : '#f3f4f6';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'scale(1)';
+                    e.currentTarget.style.backgroundColor = isActive('/trending') ? '#eff6ff' : 'transparent';
+                  }}>
+                    <AiFillFire size={24} />
+                    <span>Trending</span>
+                  </Link>
+                  <Link to="/library" style={{ 
+                    display: 'flex', 
+                    alignItems: 'center',
+                    gap: '12px',
+                    padding: '12px 16px', 
+                    color: isActive('/library') ? '#3b82f6' : '#374151', 
+                    textDecoration: 'none',
+                    borderRadius: '8px',
+                    transition: 'all 0.3s ease',
+                    backgroundColor: isActive('/library') ? '#eff6ff' : 'transparent'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'scale(1.05)';
+                    e.currentTarget.style.backgroundColor = isActive('/library') ? '#dbeafe' : '#f3f4f6';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'scale(1)';
+                    e.currentTarget.style.backgroundColor = isActive('/library') ? '#eff6ff' : 'transparent';
+                  }}>
+                    <IoLibrary size={24} />
+                    <span>Library</span>
+                  </Link>
+                </>
+              )}
+              
+              {/* Show admin-only navigation when admin is logged in */}
+              {userRole === 'admin' && (
+                <>
+                  <Link to="/dashboard" style={{ 
+                    display: 'flex', 
+                    alignItems: 'center',
+                    gap: '12px',
+                    padding: '12px 16px', 
+                    color: isActive('/dashboard') ? '#3b82f6' : '#374151', 
+                    textDecoration: 'none',
+                    borderRadius: '8px',
+                    transition: 'all 0.3s ease',
+                    backgroundColor: isActive('/dashboard') ? '#eff6ff' : 'transparent'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'scale(1.05)';
+                    e.currentTarget.style.backgroundColor = isActive('/dashboard') ? '#dbeafe' : '#f3f4f6';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'scale(1)';
+                    e.currentTarget.style.backgroundColor = isActive('/dashboard') ? '#eff6ff' : 'transparent';
+                  }}>
+                    <BiSolidDashboard size={24} />
+                    <span>Dashboard</span>
+                  </Link>
+                  <Link to="/upload" style={{ 
+                    display: 'flex', 
+                    alignItems: 'center',
+                    gap: '12px',
+                    padding: '12px 16px', 
+                    color: isActive('/upload') ? '#3b82f6' : '#374151', 
+                    textDecoration: 'none',
+                    borderRadius: '8px',
+                    transition: 'all 0.3s ease',
+                    backgroundColor: isActive('/upload') ? '#eff6ff' : 'transparent'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'scale(1.05)';
+                    e.currentTarget.style.backgroundColor = isActive('/upload') ? '#dbeafe' : '#f3f4f6';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'scale(1)';
+                    e.currentTarget.style.backgroundColor = isActive('/upload') ? '#eff6ff' : 'transparent';
+                  }}>
+                    <MdCloudUpload size={24} />
+                    <span>Upload</span>
+                  </Link>
+                  <Link to="/users" style={{ 
+                    display: 'flex', 
+                    alignItems: 'center',
+                    gap: '12px',
+                    padding: '12px 16px', 
+                    color: isActive('/users') ? '#3b82f6' : '#374151', 
+                    textDecoration: 'none',
+                    borderRadius: '8px',
+                    transition: 'all 0.3s ease',
+                    backgroundColor: isActive('/users') ? '#eff6ff' : 'transparent'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'scale(1.05)';
+                    e.currentTarget.style.backgroundColor = isActive('/users') ? '#dbeafe' : '#f3f4f6';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'scale(1)';
+                    e.currentTarget.style.backgroundColor = isActive('/users') ? '#eff6ff' : 'transparent';
+                  }}>
+                    <FaUserAstronaut size={24} />
+                    <span>Users</span>
+                  </Link>
+                </>
+              )}
             </nav>
           </div>
         </div>
